@@ -1,9 +1,50 @@
 <?php
+session_start();
 require_once("../require_once/dp.php");
 
-$stmd = $pdo->prepare("SELECT * FROM pokemon ORDER BY RAND() LIMIT 1");
-$stmd->execute();
-$pokemon = $stmd->fetch(PDO::FETCH_ASSOC);
+if (!isset($_SESSION['pokemon'])) {
+    $stmd = $pdo->prepare("SELECT * FROM pokemon ORDER BY RAND() LIMIT 1");
+    $stmd->execute();
+    $_SESSION['pokemon'] = $stmd->fetch(PDO::FETCH_ASSOC);
+}
+
+$currentPokemon = $_SESSION['pokemon'];
+$name = $currentPokemon['pokeName'];
+$message = "";
+
+//BUTtons
+if(isset($_POST['action'])){
+    if($_POST['action'] === 'Catch'){
+        $roll = rand(1,100);
+        if($roll <= $currentPokemon['baseCatchPercent']){
+            $message = "You caught " . $currentPokemon['pokeName'] . "!";
+            unset($_SESSION['pokemon']);
+        } else {
+            $message = $currentPokemon['pokeName'] . " broke free!";
+        }
+    }
+
+    if($_POST['action'] === 'Bait'){
+        $message = "You used Bait!";
+    }
+    if($_POST['action'] === 'Rock'){
+        $message = "You threw a Rock!";
+    }
+    if($_POST['action'] === 'Run'){
+        $message = "You ran away!";
+        unset($_SESSION['pokemon']);
+    }
+
+    $_SESSION['flash'] = $message;
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+$pokemon = $_SESSION['pokemon'];
+
+$flash = $_SESSION['flash'] ?? '';
+unset($_SESSION['flash']);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -14,21 +55,24 @@ $pokemon = $stmd->fetch(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="/css/base.css">
 </head>
 <div class="wrapper">
-    <body>
-        <?php require_once("../require_once/header.php"); ?>
+<body>
+    <?php require_once("../require_once/header.php"); ?>
+    <!-- Tells user if they caught, not able to, threw a rock/bait or ran away -->
+    <?php if ($flash): ?>
+        <script>alert(<?= json_encode($flash) ?>);</script>
+    <?php endif; ?>
 
-
-
-        <h1 class="title">WebMons</h1>
-        <h2><?= $pokemon['pokeName'] ?></h2>
-        <img src="<?= $pokemon['imageSrc'] ?>" alt="<?= $pokemon['pokeName'] ?>" width="200" height="200" class="center-image">
-        <!-- <img src="/images/pikachu.png" alt="Pikachu" width="200" height="200" class="center-image"> -->
-         <p>Catch chance: <?= $pokemon['baseCatchPercent'] ?>%</p>
-        <button type="button">Catch</button>
-        <button type="button">Bait</button>
-        <button type="button">Rock</button>
-        <button type="button">Run</button>
-        
-    </body>
+    <h1 class="title">WebMons</h1>
+    <h2><?= $currentPokemon['pokeName'] ?></h2>
+    <img src="<?= $currentPokemon['imageSrc'] ?>" alt="<?= $currentPokemon['pokeName'] ?>" width="200" height="200" class="center-image">
+    <!-- <img src="/images/pikachu.png" alt="Pikachu" width="200" height="200" class="center-image"> -->
+        <p>Catch chance: <?= $pokemon['baseCatchPercent'] ?>%</p>
+        <form method="post">
+        <button type="submit" name="action" value="Catch">Catch</button>
+        <button type="submit" name="action" value="Bait">Bait</button>
+        <button type="submit" name="action" value="Rock">Rock</button>
+        <button type="submit" name="action" value="Run">Run</button>
+        </form>
+</body>
 </div>
 </html>
