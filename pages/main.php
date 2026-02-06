@@ -85,13 +85,56 @@ unset($_SESSION['flash']);
     <h2><?= $currentPokemon['pokeName'] ?></h2>
     <img src="<?= $currentPokemon['imageSrc'] ?>" alt="<?= $currentPokemon['pokeName'] ?>" width="200" height="200" class="center-image">
     <!-- <img src="/images/pikachu.png" alt="Pikachu" width="200" height="200" class="center-image"> -->
-        <p>Catch chance: <?= $currentPokemon['baseCatchPercent'] ?>%</p>
-        <form method="post">
+    <p>Catch chance: <?= $currentPokemon['baseCatchPercent'] ?>%</p>
+    <form method="post">
         <button type="submit" name="action" value="Catch">Catch</button>
         <button type="submit" name="action" value="Bait">Bait</button>
         <button type="submit" name="action" value="Rock">Rock</button>
         <button type="submit" name="action" value="Run">Run</button>
-        </form>
+    </form>
+    <?php
+    $unknownImg = "https://www.pokemaniablog.com/assets/img/UnownQuestion.png";
+    $unknownPokemon = "????";
+
+    $stmt = $pdo->prepare("
+        SELECT 
+            p.pokeID,
+            p.pokeName,
+            p.imageSrc,
+            up.pokeID AS caught
+        FROM pokemon p
+        LEFT JOIN user_pokemon up
+            ON up.pokeID = p.pokeID
+        AND up.userID = ?
+        ORDER BY p.pokeID
+    ");
+    $stmt->execute([$userID]);
+    $pokedex = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    ?>
+    <h1 class="title">Your Collection</h1>
+    <?php
+    echo "<div class='collection'>";
+
+    foreach ($pokedex as $row) {
+        $id = (int)$row['pokeID'];
+        $name = htmlspecialchars($row['pokeName']);
+
+        $img = ($row['caught'] === null) ? $unknownImg : $row['imageSrc'];
+        $img = htmlspecialchars($img);
+        ?>
+        <section class="pokedex">
+            <img src="<?= $img ?>" alt="<?= $name ?>" class="<?= $row['caught'] === null ? 'unknown' : 'known' ?>">
+            <p class="text"><?= $row['caught'] === null ? $unknownPokemon : $name ?></p>
+        </section>
+        <?php
+    }
+
+    echo "</div>";
+    ?>
+
+
+
 </body>
 </div>
 </html>

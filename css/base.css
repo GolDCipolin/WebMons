@@ -65,3 +65,20 @@ button{
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
     margin-left: 6.5rem;
 }
+
+.pokedex img {
+  width: 120px;
+  height: 120px;
+}
+
+.pokedex img.unknown {
+  width: 70px;
+  height: 70px;
+  opacity: 0.6;
+}
+
+.pokedex{
+    display: inline-block;
+    text-align: center;
+    margin: 1.2rem;
+}
