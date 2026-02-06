@@ -8,6 +8,24 @@ if (!isset($_SESSION['pokemon'])) {
     $_SESSION['pokemon'] = $stmd->fetch(PDO::FETCH_ASSOC);
 }
 
+if(empty($_COOKIE['user_token'])){
+    $token = bin2hex(random_bytes(16));
+    setcookie('user_token', $token, time() + (86400 * 30), "/");
+    $_COOKIE['user_token'] = $token; // Update the $_COOKIE superglobal immediately
+}
+
+$token = $_COOKIE['user_token'];
+
+$st = $pdo->prepare("SELECT userID FROM users WHERE user_token = ?");
+$st->execute([$token]);
+$userID = $st->fetchColumn();
+
+if(!$userID){
+    $st = $pdo->prepare("INSERT INTO users (user_token) VALUES (?)");
+    $st ->execute([$token]);
+    $userID = $pdo->lastInsertId();
+}
+
 $currentPokemon = $_SESSION['pokemon'];
 $name = $currentPokemon['pokeName'];
 $message = "";
@@ -17,6 +35,9 @@ if(isset($_POST['action'])){
     if($_POST['action'] === 'Catch'){
         $roll = rand(1,100);
         if($roll <= $currentPokemon['baseCatchPercent']){
+            $stmt = $pdo->prepare("INSERT IGNORE INTO user_pokemon (userID, pokeID) VALUES (?, ?)");
+            $stmt->execute([$userID, $currentPokemon['pokeID']]);
+
             $message = "You caught " . $currentPokemon['pokeName'] . "!";
             unset($_SESSION['pokemon']);
         } else {
@@ -39,8 +60,6 @@ if(isset($_POST['action'])){
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
-
-$pokemon = $_SESSION['pokemon'];
 
 $flash = $_SESSION['flash'] ?? '';
 unset($_SESSION['flash']);
@@ -66,7 +85,7 @@ unset($_SESSION['flash']);
     <h2><?= $currentPokemon['pokeName'] ?></h2>
     <img src="<?= $currentPokemon['imageSrc'] ?>" alt="<?= $currentPokemon['pokeName'] ?>" width="200" height="200" class="center-image">
     <!-- <img src="/images/pikachu.png" alt="Pikachu" width="200" height="200" class="center-image"> -->
-        <p>Catch chance: <?= $pokemon['baseCatchPercent'] ?>%</p>
+        <p>Catch chance: <?= $currentPokemon['baseCatchPercent'] ?>%</p>
         <form method="post">
         <button type="submit" name="action" value="Catch">Catch</button>
         <button type="submit" name="action" value="Bait">Bait</button>
